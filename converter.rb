@@ -1,5 +1,4 @@
 # TODO compare to: http://www.fao.org/docrep/017/ap815e/ap815e.pdf
-# 237 ml milk  == 1 cup
 # 236.59 ml water == 1 cup
 # GR_PER_CUPS_OF_WATER = 237
 # CUPS_OF_WATER_PER_GR = 1 / 237
@@ -7,15 +6,17 @@
 require 'csv'
 
 class Ingredient
-  attr_reader :name, :metric, :us
+  attr_reader :name, :metric, :metric_unit, :us, :us_unit
 
   def initialize(name, metric, us)
     @name = name.strip
-    @metric = metric.gsub(' g', '').to_f
-    @us = to_frac(us.gsub(/ cups?/, ''))
+    @metric = metric.to_f
+    @metric_unit = metric.gsub(/\d/, '').strip
+    @us = to_frac(us.gsub(/[a-zA-Z]/, '').strip)
+    @us_unit = us.gsub(/\d|\/|\./, '').strip
   end
 
-  def cups_per_gr
+  def us_per_metric   # i.e. cups_per_gr
     us / metric
   end
 
@@ -55,34 +56,51 @@ class IngredientCsvStore
 
   def valid_row?(row)
     metric, us = row.values_at('metric', 'us')
-    metric && gram?(metric) && us && cup?(us)
+    metric && (gram?(metric) || ml?(metric)) && us && (cup?(us) || tbsp?(us) || oz?(us))
   end
 
   def gram?(string)
     string[-1] == 'g'
   end
 
+  def ml?(string)
+    string[-2..-1] == 'ml'
+  end
+
   def cup?(string)
     string.include?('cup')
   end
+
+  def tbsp?(string)
+    string.include?('bsp')
+  end
+
+  def oz?(string)
+    string.include?('oz')
+  end
 end
 
-name = ARGV[0]
-grams = ARGV[1].to_f
+print "Ingredient: "
+name = gets.chomp
 
 store = IngredientCsvStore.new('ingredients.csv')
 ingredient = store[name]
-cups = ingredient.cups_per_gr * grams
 
-puts "#{grams}g #{name} in cups: #{cups}"
+if ingredient
+  print "Amount in #{ingredient.metric_unit}: "
+  metric_amount = gets.chomp.to_f
+
+  us_amount = ingredient.us_per_metric * metric_amount
+
+  puts "#{metric_amount} #{ingredient.metric_unit} #{name} in #{ingredient.us_unit}: #{us_amount.round(2)}"
+else
+  puts "Sorry, this ingredient doens't exist."
+end
+
 
 # ingredients = store.all
-# butter = ingredients.detect { |ingredient| ingredient.name == 'Butter' }
-#
+
 # ingredients.each do |ingredient|
-#   puts [ingredient.name, ingredient.cups_per_gr].join(' ')
-#   # puts "#{ingredient.name}: #{ingredient.us}"
+#   puts "#{ingredient.name}, #{ingredient.metric} #{ingredient.metric_unit}, #{ingredient.us} #{ingredient.us_unit}"
 # end
-#
-#
-#
+

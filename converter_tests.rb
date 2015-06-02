@@ -2,15 +2,17 @@ require 'minitest'
 require 'minitest/autorun'
 require 'converter'
 
+# run with ruby -I . converter_tests.rb
+
 class TestIngredient < MiniTest::Test
   def test_cups_per_gr_returns_whatever_for_blackberries
     ingredient = Ingredient.new('blackberries', '100 g', '1 cup')
-    assert_equal 0.01, ingredient.cups_per_gr
+    assert_equal 0.01, ingredient.us_per_metric
   end
 
   def test_cups_per_gr_returns_whatever_for_millet
     ingredient = Ingredient.new('millet', '100 g', '1/2 cup')
-    assert_equal 0.005, ingredient.cups_per_gr
+    assert_equal 0.005, ingredient.us_per_metric
   end
 
   def test_that_ingredients_works_with_one
@@ -29,7 +31,17 @@ class TestIngredient < MiniTest::Test
   end
 
   def test_that_ingredients_works_with_one_and_a_half
-    ingredient = Ingredient.new('foo', '', '1 1/2')
+    ingredient = Ingredient.new('foo', '', '1 1/2 cups')
+    assert_equal 1.5, ingredient.us
+  end
+
+  def test_that_ingredients_works_with_tbsp
+    ingredient = Ingredient.new('foo', '', '1 1/2 tbsp')
+    assert_equal 1.5, ingredient.us
+  end
+
+  def test_that_ingredients_works_with_oz
+    ingredient = Ingredient.new('foo', '', '1 1/2 oz')
     assert_equal 1.5, ingredient.us
   end
 end
@@ -42,3 +54,4 @@ class TestIngredientCsvStore < MiniTest::Test
     assert ingredients.first.is_a?(Ingredient)
   end
 end
+

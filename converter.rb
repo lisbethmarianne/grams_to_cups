@@ -5,19 +5,9 @@
 
 require 'csv'
 
-class Ingredient
-  attr_reader :name, :metric, :metric_unit, :us, :us_unit
-
-  def initialize(name, metric, us)
-    @name = name.strip
-    @metric = metric.to_f
-    @metric_unit = metric.gsub(/\d/, '').strip
-    @us = to_frac(us.gsub(/[a-zA-Z]/, '').strip)
-    @us_unit = us.gsub(/\d|\/|\./, '').strip
-  end
-
-  def us_per_metric   # i.e. cups_per_gr
-    us / metric
+class Parser
+  def initialize(amount)
+    @amount = amount
   end
 
   def to_frac(string)
@@ -25,6 +15,28 @@ class Ingredient
     numerator, denominator = right.split('/').map(&:to_f)
     denominator ||= 1
     left.to_i + numerator / denominator
+  end
+
+  def parse
+    value = to_frac(@amount.gsub(/[a-zA-Z,]/, '').strip)
+    unit_comment = @amount.gsub(/\d|\/|\./, '').strip
+    unit, comment = unit_comment.split(', ', 2)
+    
+    [value, unit, comment]
+  end
+end
+
+class Ingredient
+  attr_reader :name, :metric, :metric_unit, :us, :us_unit, :us_comment
+
+  def initialize(name, metric, us)
+    @name = name.strip
+    @metric, @metric_unit, @metric_comment = Parser.new(metric).parse
+    @us, @us_unit, @us_comment = Parser.new(us).parse
+  end
+
+  def us_per_metric   # i.e. cups_per_gr
+    us / metric
   end
 end
 
@@ -92,15 +104,14 @@ if ingredient
 
   us_amount = ingredient.us_per_metric * metric_amount
 
-  puts "#{metric_amount} #{ingredient.metric_unit} #{name} in #{ingredient.us_unit}: #{us_amount.round(2)}"
+  puts "#{metric_amount} #{ingredient.metric_unit} #{name} in #{ingredient.us_unit} (#{ingredient.us_comment}): #{us_amount.round(2)}"
 else
-  puts "Sorry, this ingredient doens't exist."
+  puts "Sorry, this ingredient doesn't exist."
 end
 
 
 # ingredients = store.all
 
 # ingredients.each do |ingredient|
-#   puts "#{ingredient.name}, #{ingredient.metric} #{ingredient.metric_unit}, #{ingredient.us} #{ingredient.us_unit}"
+#   puts "#{ingredient.name}, #{ingredient.metric} #{ingredient.metric_unit}, #{ingredient.us} #{ingredient.us_unit}, #{ingredient.us_comment}"
 # end
-
